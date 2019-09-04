@@ -395,13 +395,9 @@ __global__ void kernUpdateVelNeighborSearchScattered(
 	// - Identify the grid cell that this particle is in
 	// - Identify which cells may contain neighbors. This isn't always 8.
 	int index = (blockIdx.x * blockDim.x) + threadIdx.x;
-	float all_x[2] = { pos[index].x, -1 };
-	float all_y[2] = { pos[index].y, -1 };
-	float all_z[2] = { pos[index].z, -1 };
-	get1DNeighbours(cellWidth, pos[index].x, all_x);
-	get1DNeighbours(cellWidth, pos[index].y, all_y);
-	get1DNeighbours(cellWidth, pos[index].z, all_z);
-
+	float neigh_distance = std::max(std::max(rule1Distance, rule2Distance), rule3Distance);
+	glm::vec3 min_cell = glm::vec3((int)(pos[index].x - neigh_distance) * inverseCellWidth, (pos[index].y - neigh_distance) / cellWidth, (pos[index].z - neigh_distance) / cellWidth);
+	glm::vec3 max_cell = glm::vec3((int)(pos[index].x + neigh_distance) * cellWidth, (pos[index].y + neigh_distance) / cellWidth, (pos[index].z + neigh_distance) / cellWidth);
 	// - For each cell, read the start/end indices in the boid pointer array.
 	// - Access each boid in the cell and compute velocity change from
 	//   the boids rules, if this boid is within the neighborhood distance.
@@ -410,11 +406,11 @@ __global__ void kernUpdateVelNeighborSearchScattered(
 	glm::vec3 rule1VelocityChange = glm::vec3(0, 0, 0);
 	glm::vec3 rule2VelocityChange = glm::vec3(0, 0, 0);
 	glm::vec3 rule3VelocityChange = glm::vec3(0, 0, 0);
-	for (int i = 0; i < 2; i++) {
-		for (int j = 0; j < 2; j++) {
-			for (int k = 0; k < 2; k++) {
-				if (all_x[i] >= 0 && all_x[i] < N && all_y[j] >= 0 && all_y[j] < N && all_z[k] >= 0 && all_z[k] < N) {
-					int cell = gridIndex3Dto1D(all_x[i]*inverseCellWidth, all_y[j] *inverseCellWidth, all_z[k] *inverseCellWidth, gridResolution);
+	for (int i = min_cell.x; i <= max_cell.x; i++) {
+		for (int j = min_cell.y; j <= max_cell.y; j++) {
+			for (int k = min_cell.z; k <= max_cell.z; k++) {
+				if (i >= 0 && i < N && j >= 0 && j < N && k >= 0 && k < N) {
+					int cell = gridIndex3Dto1D(i, j * inverseCellWidth, k * inverseCellWidth, gridResolution);
 					for (int l = gridCellStartIndices[cell]; l <= gridCellEndIndices[cell]; l++) {
 						int boid = particleArrayIndices[l];
 						// Rule 1: boids fly towards their local perceived center of mass, which excludes themselves
