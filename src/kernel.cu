@@ -340,7 +340,11 @@ __global__ void kernComputeIndices(int N, int gridResolution,
 	if (index >= N) {
 		return;
 	}
-	gridIndices[index] = gridIndex3Dto1D(glm::floor((pos[index].x - gridMin.x)*inverseCellWidth), glm::floor((pos[index].y - gridMin.y)*inverseCellWidth), glm::floor((pos[index].z - gridMin.z)*inverseCellWidth), gridResolution);
+	gridIndices[index] = gridIndex3Dto1D(
+		glm::floor((pos[index].x - gridMin.x)*inverseCellWidth), 
+		glm::floor((pos[index].y - gridMin.y)*inverseCellWidth), 
+		glm::floor((pos[index].z - gridMin.z)*inverseCellWidth), 
+		gridResolution);
 	indices[index] = index;
 }
 
@@ -391,9 +395,18 @@ __global__ void kernUpdateVelNeighborSearchScattered(
 	// - Identify the grid cell that this particle is in
 	// - Identify which cells may contain neighbors. This isn't always 8.
 	int index = (blockIdx.x * blockDim.x) + threadIdx.x;
-	float neigh_distance = imax(imax(rule1Distance, rule2Distance), rule3Distance);
-	glm::vec3 min_cell = glm::vec3(glm::floor((pos[index].x - gridMin.x - neigh_distance) * inverseCellWidth), glm::floor((pos[index].y - gridMin.y - neigh_distance)  * inverseCellWidth), glm::floor((pos[index].z - gridMin.z - neigh_distance) * inverseCellWidth));
-	glm::vec3 max_cell = glm::vec3(glm::floor((pos[index].x - gridMin.x + neigh_distance) * inverseCellWidth), glm::floor((pos[index].y - gridMin.y + neigh_distance)  * inverseCellWidth), glm::floor((pos[index].z - gridMin.z + neigh_distance) * inverseCellWidth));
+	if (index >= N) {
+		return;
+	}
+	float neigh_distance = glm::max(glm::max(rule1Distance, rule2Distance), rule3Distance);
+	glm::vec3 min_cell = glm::vec3(
+		imax(0, glm::floor((pos[index].x - gridMin.x - neigh_distance) * inverseCellWidth)), 
+		imax(0, glm::floor((pos[index].y - gridMin.y - neigh_distance)  * inverseCellWidth)),
+		imax(0, glm::floor((pos[index].z - gridMin.z - neigh_distance) * inverseCellWidth)));
+	glm::vec3 max_cell = glm::vec3(
+		imin(gridResolution - 1, glm::floor((pos[index].x - gridMin.x + neigh_distance) * inverseCellWidth)), 
+		imin(gridResolution - 1, glm::floor((pos[index].y - gridMin.y + neigh_distance)  * inverseCellWidth)), 
+		imin(gridResolution - 1, glm::floor((pos[index].z - gridMin.z + neigh_distance) * inverseCellWidth)));
 	// - For each cell, read the start/end indices in the boid pointer array.
 	// - Access each boid in the cell and compute velocity change from
 	//   the boids rules, if this boid is within the neighborhood distance.
@@ -405,25 +418,23 @@ __global__ void kernUpdateVelNeighborSearchScattered(
 	for (int i = min_cell.x; i <= max_cell.x; i++) {
 		for (int j = min_cell.y; j <= max_cell.y; j++) {
 			for (int k = min_cell.z; k <= max_cell.z; k++) {
-				if (i >= 0 && i < gridResolution && j >= 0 && j < gridResolution && k >= 0 && k < gridResolution) {
-					int cell = gridIndex3Dto1D(i, j, k, gridResolution);
-					for (int l = gridCellStartIndices[cell]; l <= gridCellEndIndices[cell]; l++) {
-						if (l != -1) {
-							int boid = particleArrayIndices[l];
-							// Rule 1: boids fly towards their local perceived center of mass, which excludes themselves
-							if (index != boid && (glm::distance(pos[index], pos[boid]) <= rule1Distance)) {
-								rule1VelocityChange += pos[boid];
-								rule1Count++;
-							}
-							// Rule 2: boids try to stay a distance d away from each other
-							if (index != boid && (glm::distance(pos[index], pos[boid]) <= rule2Distance)) {
-								rule2VelocityChange -= (pos[boid] - pos[index]);
-							}
-							// Rule 3: boids try to match the speed of surrounding boids
-							if (index != boid && (glm::distance(pos[index], pos[boid]) <= rule3Distance)) {
-								rule3VelocityChange += vel1[boid];
-								rule3Count++;
-							}
+				int cell = gridIndex3Dto1D(i, j, k, gridResolution);
+				for (int l = gridCellStartIndices[cell]; l <= gridCellEndIndices[cell]; l++) {
+					if (l >= 0) {
+						int boid = particleArrayIndices[l];
+						// Rule 1: boids fly towards their local perceived center of mass, which excludes themselves
+						if (index != boid && (glm::distance(pos[index], pos[boid]) <= rule1Distance)) {
+							rule1VelocityChange += pos[boid];
+							rule1Count++;
+						}
+						// Rule 2: boids try to stay a distance d away from each other
+						if (index != boid && (glm::distance(pos[index], pos[boid]) <= rule2Distance)) {
+							rule2VelocityChange -= (pos[boid] - pos[index]);
+						}
+						// Rule 3: boids try to match the speed of surrounding boids
+						if (index != boid && (glm::distance(pos[index], pos[boid]) <= rule3Distance)) {
+							rule3VelocityChange += vel1[boid];
+							rule3Count++;
 						}
 					}
 				}
@@ -487,9 +498,6 @@ void Boids::stepSimulationScatteredGrid(float dt) {
 	// LOOK-2.1 Example for using thrust::sort_by_key
 	try
 	{
-		//thrust::device_ptr<int> dev_thrust_particleArrayIndices = thrust::device_ptr<int>(dev_particleArrayIndices);
-		//thrust::device_ptr<int> dev_thrust_particleGridIndices = thrust::device_ptr<int>(dev_particleGridIndices);;
-
 		thrust::sort_by_key(dev_thrust_particleGridIndices, dev_thrust_particleGridIndices + numObjects, dev_thrust_particleArrayIndices);
 	}
 	catch (thrust::system_error &e)
