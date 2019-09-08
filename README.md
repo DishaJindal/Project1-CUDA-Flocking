@@ -29,8 +29,6 @@ The algorithm for coherent uniform grid is very similar to the scattered one wit
 #### Optimized Coherent Uniform Grid
 In coherent uniform grid, we are looking at boids in all cells in the cube from -d to +d in all directions. In this version, I am checking the boids in the cells which are in the sphere of radius d rather than the cube. This is done by checking hte distance between the center of the sphere and the center of the grid cell. If the distance is greater than the radius of the sphere plus the diagonal of the cell, then it is definately outside the sphere and all suhc cells are rejected.
 
-## Features
-All plus extra credit
 ## Performance Analysis
 ### Number of Boids
 The following plot demonstrates the impact of increasing the number of boids in the simuation on the framerate. The three colors correspond to three implementations: Naive, Scattered and Coherent. The darker color bars are with visualization (VISUALIZE 1) and the corresponding lighter colors are without visualization (VISUALIZE 0).
@@ -72,7 +70,7 @@ The plot shows that the framerate is maximum when the width of the cell is equal
 
 **Increase**: The implementation with 27-cells (width d) is faster than 8-cell one(width 2d). One of the reasons for this behaviour is that as we increase the width of the cell, the total grid volume that we check increases and so does the number of boids, e.g. in case of 8-cells, the width of each cell is 2d and the total volume checked is 64 d-cube whereas in case of 27-cells, the total volume checked is 27 d-cube.
 
-**Decrease**: As we decrease the cell width from d to 0.5d, the framerate drops again. One of the reasons for that might be the increase in number of cells to be checked ber boid. The performance dip is most significant in case of coherent implementation because all boids for a cell are in a contiguous memory location but as we increase the number of cells to be checked significantly, the number of boids per cell would decrease and we will no longer be able to reap benefits from boids being contiguous.
+**Decrease**: As we decrease the cell width from d to 0.5d, the framerate drops again. One of the reasons for that might be the increase in number of cells to be checked ber boid. The performance dip is most significant in case of coherent implementation because all boids for a cell are in a contiguous memory location but as we increase the number of cells to be checked significantly, the number of boids per cell would decrease and we will no longer be able to reap the caching benefits.
 
 
 ### Scattered vs Coherent
@@ -86,6 +84,6 @@ In all configurations, the coherent grid is performing better than the scattered
 
 ### Coherent Uniform and Optimized Coherent Uniform
 The following plot demonstrates the improvement after optimizing the coherent uniform grid approach to only consider the boids inside the sphere around the boid. 
-<p align="center"><img src="https://github.com/DishaJindal/Project1-CUDA-Flocking/blob/master/images/Optimized_Coherent.png" width="600"></p>
+<p align="center"><img src="https://github.com/DishaJindal/Project1-CUDA-Flocking/blob/master/images/Optimized_Coherent.png" width="500"></p>
 
 This shows the performance difference for three different cell widths: 0.5d, 1d and 2d where d is equal to the maximum neighbouring distance. The performance increases with this optimization for all configurations and it increases more as we decrease the cell width because the number of unnecessary boids increase with smaller cell width.
