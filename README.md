@@ -23,7 +23,7 @@ Boids Flocking Simulation is implemented using three algorthims.
 #### Naive
 In the naive implementation, we loop through all grid cells and the boids inside them to update the position and velocity of each boid.
 #### Scattered Uniform Grid
-In case of scattered, instead of looping through all cells, we look for cells at neghbouring distance away from the boid in all six directions. This drastically reduces the number of cells and boids checked. This is implemented in a manner such as we don't need any code change w.r.t the cells to be checked on changing the maximum neghbouring distance and hence, caters to the Grid-Looping Optimization section of the extra credits.
+In case of scattered, instead of looping through all cells, we look for cells at neghbouring distance away from the boid in all six directions. This drastically reduces the number of cells and boids checked. This is implemented in a manner such as we don't need any code change w.r.t the cells to be checked on changing the maximum neghbouring distance and hence, caters to the **Grid-Looping Optimization** section of the extra credits.
 #### Coherent Uniform Grid
 The algorithm for coherent uniform grid is very similar to the scattered one with a small difference in terms of memory access. The boids belonging one cell are stored in contiguous memory location to avoid the unnecessary hops and leading to better cache hit and hence, improving the runtime.
 #### Optimized Coherent Uniform Grid
